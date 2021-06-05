@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["cache"];
+window.ALL_CRATES = ["lbucket"];
