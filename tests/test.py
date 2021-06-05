@@ -8,8 +8,8 @@ from redis import BlockingConnectionPool
 REDIS_URL = "redis://localhost:6350"
 
 COMMANDS = {
-"COUNT" : "mcaptcha_cache.count",
-"GET" : "mcaptcha_cache.get",
+"COUNT" : "lbucket.count",
+"GET" : "lbucket.get",
 }
 
 

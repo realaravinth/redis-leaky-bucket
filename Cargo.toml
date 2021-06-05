@@ -1,16 +1,15 @@
 [package]
-name = "mcaptcha-cache"
-description = "mCaptcha Redis module that implements leaky bucket algorithm"
+name = "redis-lbucket"
+description = "Redis module that implements leaky bucket algorithm"
 version = "0.1.0"
 authors = ["realaravinth <realaravinth@batsense.net>"]
 edition = "2018"
-repository = "https://github.com/mcaptcha/cache"
-homepage = "https://github.com/mcaptcha/cache"
+repository = "https://github.com/realaravinth/redis-leaky-bucket"
 license = "AGPLv3 or later version"
 
 [lib]
 crate-type = ["cdylib"]
-name = "cache"
+name = "lbucket"
 
 [dependencies]
 redis-module = { version="0.17", features = ["experimental-api"]}

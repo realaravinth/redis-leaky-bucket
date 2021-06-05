@@ -1,6 +1,6 @@
-VERSION = "0.1.0:alpha-test"
-DOCKER_IMG = "mcaptcha/cache$(VERSION)"
-DOCKER_CONTAINER = "mcaptcha_cache_test"
+VERSION = "0.1.0:beta-test"
+DOCKER_IMG = "realaravinth/redis-leaky-bucket$(VERSION)"
+DOCKER_CONTAINER = "redis_leaky_bucket"
 
 default:
 	cargo build --release

@@ -79,7 +79,7 @@ jobs:
           file: cobertura.xml
 
       - name: generate documentation
-        if: matrix.version == 'stable' && (github.repository == 'mcaptcha/cache')
+        if: matrix.version == 'stable' && (github.repository == 'realaravinth/redis-leaky-bucket')
         run: make docs
 
         #      - name: generate documentation
@@ -90,7 +90,7 @@ jobs:
         #          args: --no-deps --workspace --all-features
 
       - name: Deploy to GitHub Pages
-        if: matrix.version == 'stable' && (github.repository == 'mcaptcha/cache')
+        if: matrix.version == 'stable' && (github.repository == 'realaravinth/redis-leaky-bucket')
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>mCaptcha Cache</h1>
+  <h1>Redis Leaky Bucket</h1>
   <p>
     <strong>
       Redis module that implements
@@ -9,13 +9,14 @@
     </strong>
   </p>
 
-[![CI Linux)](https://github.com/mCaptcha/cache/actions/workflows/linux.yml/badge.svg)](https://github.com/mCaptcha/cache/actions/workflows/linux.yml)
+[![CI Linux)](https://github.com/realaravinth/redis-leaky-bucket/actions/workflows/linux.yml/badge.svg)](https://github.com/realaravinth/redis-leaky-bucket/actions/workflows/linux.yml)
 [![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg?style=flat-square)](http://www.gnu.org/licenses/agpl-3.0)
-[![dependency status](https://deps.rs/repo/github/mCaptcha/cache/status.svg)](https://deps.rs/repo/github/mCaptcha/cache)
-<br />
-[![Chat](https://img.shields.io/badge/matrix-+mcaptcha:matrix.batsense.net-purple?style=flat-square)](https://matrix.to/#/+mcaptcha:matrix.batsense.net)
+[![dependency status](https://deps.rs/repo/github/realaravinth/redis-leaky-bucket/status.svg)](https://deps.rs/repo/github/realaravinth/redis-leaky-bucket)
 
 </div>
+
+**NOTE:** This repository was moved from
+[mCaptcha/cache](https://github.com/mCaptcha/cache) to here.
 
 ## Features
 
@@ -34,7 +35,7 @@ keep track of traffic/challenge requests.
   counter for that website will be initialized and set to 1.
 
 - It should also automatically decrement(by 1) after a certain period, say
-  `t=cooldown`. We call this cool down period and is constant for a
+  `t=cooldown`. I call this cool down period and is constant for a
   website.
 
 - If at `t=x`(where `x<cooldown`), another user visits the same website,
@@ -58,28 +59,29 @@ keep track of traffic/challenge requests.
 If a timer is supposed to go off to
 decrement key `myCounter` at `t=y`(where y is an instant in future),
 
-1. A hashmap called `mcaptcha_cache:decrement:y`(prefix might vary) is
+1. A hashmap called `lbucket:bucket:y`(prefix might vary) is
    created with key-value pairs `keyName: DecrementCount`(`myCounter: 1` in
    our case)
 
 2. A timer will be created to go off at `t=y`
+
 3. Any further decrement operations that are scheduled for `t=y` are
-   registered with the same hashmap(`mcaptcha_cache:decrement:y`).
+   registered with the same hashmap(`lbucket:bucket:y`).
 
 4. At `t=y`, a procedure will be executed to read
-   all values of the hashmap(`mcaptcha_cache:decrement:y`) and performs
+   all values of the hashmap(`lbucket:bucket:y`) and performs
    all registered decrements. When its done, it cleans itself up.
 
 This way, we are not spinning timers for every decrement operation but
-instead, one for every "pocket".
+instead, one for every "bucket".
 
 ### Gotchas:
 
 This module creates and manages data of three types:
 
-1.  `mcaptcha_cache:captcha:y` where `y`(last character) is variable
-2.  `mcaptcha_cache:pocket:x` where `x`(last character) is variable
-3.  `mcaptcha:timer:z` where `z`(last character) is pocket name from
+1.  `lbucket:captcha:y` where `y`(last character) is variable
+2.  `lbucket:bucket:x` where `x`(last character) is variable
+3.  `lbucket:timer:z` where `z`(last character) is bucket name from
     step 2(See [Hacks](#hacks)).
 
 **WARNING: Please don't modify these manually. If you do so, then Redis
@@ -88,7 +90,7 @@ will panic**
 This module is capable of cleaning up after itself so manual clean up is
 unnecessary. If you have needs that are not met my this module and you
 which access/mutate data manually, please open an
-[issue](https://github.com/mCaptcha/cache/issues). I'd be happy to help.
+[issue](https://github.com/realaravinth/redis-leaky-bucket/issues). I'd be happy to help.
 
 ## Usage
 
@@ -102,7 +104,7 @@ There are two ways to run `cache`:
 Use image from DockerHub:
 
 ```bash
-$  docker run -p 6379:6379 mcaptcha/cache
+$  docker run -p 6379:6379 realaravinth/redis-leaky-bucket
 ```
 
 or build from source:
@@ -110,13 +112,13 @@ or build from source:
 #### Build
 
 ```bash
-$ docker build -t mcaptcha/cache .
+$ docker build -t realaravinth/redis-leaky-bucket .
 ```
 
 #### Run
 
 ```bash
-$  docker run -p 6379:6379 mcaptcha/cache
+$  docker run -p 6379:6379  realaravinth/redis-leaky-bucket
 ```
 
 ### Bare-metal
@@ -135,7 +137,7 @@ cargo build --release
 #### Run
 
 ```
-redis-server --loadmodule ./target/release/libcache.so
+redis-server --loadmodule ./target/release/liblbucket.so
 ```
 
 ### Commands
@@ -147,13 +149,13 @@ Every counter has a name and a leak-rate in seconds.
 If counter exists, then count is incremented. Otherwise, it is created.
 
 ```redis
-MCAPTCHA_CACHE.COUNT <counter-name> <leak-rate-in-seconds>
+LBUCKET.COUNT <counter-name> <leak-rate-in-seconds>
 ```
 
 ## Get counter value
 
 ```redis
-MCAPTCHA_CACHE.GET <counter-name>
+LBUCKET.GET <counter-name>
 ```
 
 ## Benchmark
@@ -189,12 +191,12 @@ MCAPTCHA_CACHE.COUNT mycounter 45: 385653.69 requests per second, p50=1.959 msec
 ## Hacks
 
 I couldn't find any ways to persist timers to disk(`RDB`/`AOF`). So I'm
-using a dummy record(`mcaptcha:timer:*` see [Gotchas](#gotchas)) which
-will expire after an arbitrary time(see `POCKET_EXPIRY_OFFSET` in
+using a dummy record(`lbucket:timer:*` see [Gotchas](#gotchas)) which
+will expire after an arbitrary time(see `BUCKET_EXPIRY_OFFSET` in
 [`lib.rs`](./src/lib.rs)). When that expiry occurs, I derive the key of
-the pocket from the values that are passed to expiration event handlers
-and perform clean up of both the pocket and counters registered with the
-pocket.
+the bucket from the values that are passed to expiration event handlers
+and perform clean up of both the bucket and counters registered with the
+bucket.
 
 Ideally, I should be able to persist timers but I couldn't find ways to
 do that.

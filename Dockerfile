@@ -24,7 +24,7 @@ ENV LIBDIR /usr/lib/redis/modules
 WORKDIR /data
 RUN mkdir -p "$LIBDIR"
 
-COPY --from=builder /src/target/release/libcache.so "$LIBDIR"
+COPY --from=builder /src/target/release/liblbucket.so "$LIBDIR"
 
 EXPOSE 6379
-CMD ["redis-server", "--loadmodule", "/usr/lib/redis/modules/libcache.so"]
+CMD ["redis-server", "--loadmodule", "/usr/lib/redis/modules/liblbucket.so"]
