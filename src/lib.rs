@@ -16,7 +16,7 @@
  */
 use lazy_static::lazy_static;
 use redis_module::raw::KeyType;
-use redis_module::{redis_command, redis_event_handler, redis_module};
+use redis_module::{redis_command, redis_event_handler, redis_module, RedisString};
 use redis_module::{Context, NextArg, RedisResult, REDIS_OK};
 
 mod bucket;
@@ -59,12 +59,12 @@ lazy_static! {
     pub static ref PREFIX_BUCKET: String = format!("{}:bucket:{{{}}}:", PKG_NAME, *ID);
 }
 
-fn get(ctx: &Context, args: Vec<String>) -> RedisResult {
+fn get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let mut args = args.into_iter().skip(1);
     let key_name = args.next_string()?;
     let key_name = utils::get_captcha_key(&key_name);
 
-    let stored_captcha = ctx.open_key(&key_name);
+    let stored_captcha = ctx.open_key(&RedisString::create(ctx.ctx, &key_name));
     if stored_captcha.key_type() == KeyType::Empty {
         return errors::CacheError::new(format!("key {} not found", key_name)).into();
     }
@@ -72,7 +72,7 @@ fn get(ctx: &Context, args: Vec<String>) -> RedisResult {
     Ok(stored_captcha.read()?.unwrap().into())
 }
 
-fn counter_create(ctx: &Context, args: Vec<String>) -> RedisResult {
+fn counter_create(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let mut args = args.into_iter().skip(1);
     // leaky bucket key name
     let key_name = args.next_string()?;

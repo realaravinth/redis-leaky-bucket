@@ -67,7 +67,7 @@ impl Bucket {
 
         let pocket_name = pocket_name.unwrap();
 
-        let pocket = ctx.open_key_writable(&pocket_name);
+        let pocket = ctx.open_key_writable(&RedisString::create(ctx.ctx, &pocket_name));
         if pocket.key_type() == KeyType::Empty {
             ctx.log_debug(&format!("Bucket doesn't exist: {}", &key_name));
             return;
@@ -102,7 +102,7 @@ impl Bucket {
         let captcha_name = get_captcha_key(captcha);
         ctx.log_debug(&captcha_name);
         // increment
-        let captcha = ctx.open_key_writable(&captcha_name);
+        let captcha = ctx.open_key_writable(&RedisString::create(ctx.ctx, &captcha_name));
 
         match captcha.read()? {
             Some(val) => {
@@ -125,7 +125,7 @@ impl Bucket {
         ctx.log_debug(&format!("Bucket name: {}", &pocket_name));
 
         // get  pocket
-        let pocket = ctx.open_key_writable(&pocket_name);
+        let pocket = ctx.open_key_writable(&RedisString::create(ctx.ctx, &pocket_name));
 
         match pocket.get_value::<Bucket>(&LEAKY_BUCKET_TYPE)? {
             Some(pocket) => match pocket.decrement.get_mut(&captcha_name) {
@@ -139,7 +139,10 @@ impl Bucket {
                 let mut counter = Bucket::new(ctx, duration)?;
                 counter.decrement.insert(captcha_name, 1);
                 pocket.set_value(&LEAKY_BUCKET_TYPE, counter)?;
-                let timer = ctx.open_key_writable(&get_timer_name_from_bucket_name(&pocket_name));
+                let timer = ctx.open_key_writable(&RedisString::create(
+                    ctx.ctx,
+                    &get_timer_name_from_bucket_name(&pocket_name),
+                ));
                 timer.write("1")?;
                 timer.set_expire(Duration::from_secs(duration + BUCKET_EXPIRY_OFFSET))?;
             }
@@ -161,7 +164,8 @@ impl Bucket {
                         "reading captcha: {} with decr count {}",
                         &captcha, count
                     ));
-                    let stored_captcha = ctx.open_key_writable(&captcha);
+                    let stored_captcha =
+                        ctx.open_key_writable(&RedisString::create(ctx.ctx, &captcha));
                     if stored_captcha.key_type() == KeyType::Empty {
                         continue;
                     }
@@ -193,12 +197,15 @@ impl Bucket {
         // get  pocket
         let pocket_name = get_bucket_name(pocket_instant);
 
-        let timer = ctx.open_key_writable(&get_timer_name_from_bucket_name(&pocket_name));
+        let timer = ctx.open_key_writable(&RedisString::create(
+            ctx.ctx,
+            &get_timer_name_from_bucket_name(&pocket_name),
+        ));
         let _ = timer.delete();
 
         ctx.log_debug(&format!("Bucket instant: {}", &pocket_instant));
 
-        let pocket = ctx.open_key_writable(&pocket_name);
+        let pocket = ctx.open_key_writable(&RedisString::create(ctx.ctx, &pocket_name));
         Bucket::decrement_runner(ctx, &pocket);
 
         match pocket.delete() {
