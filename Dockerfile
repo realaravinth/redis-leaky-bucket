@@ -1,23 +1,25 @@
-ARG REDIS_VER=6.2.2
+ARG REDIS_VER=6.2.6
 
 # stretch|bionic|buster
-ARG OSNICK=buster
+ARG OSNICK=bullseye
 
 # ARCH=x64|arm64v8|arm32v7
 ARG ARCH=x64
 
-FROM rust:latest as builder
+FROM rust:slim as builder
 WORKDIR /src
-COPY . .
 RUN set -ex; \
     apt-get update; \
     DEBIAN_FRONTEND=noninteractive \
     apt-get install -y --no-install-recommends redis clang gcc
+COPY Cargo.toml Cargo.lock /src/
+COPY src/lib.rs /src/src/lib.rs
+RUN cargo build --release || true
+COPY . /src/
+RUN ls /src/src
 RUN cargo build --release 
 
-
-FROM redisfab/redis:${REDIS_VER}-${ARCH}-${OSNICK}
-
+FROM redis:${REDIS_VER}-${OSNICK}
 ARG REDIS_VER
 
 ENV LIBDIR /usr/lib/redis/modules
@@ -25,6 +27,5 @@ WORKDIR /data
 RUN mkdir -p "$LIBDIR"
 
 COPY --from=builder /src/target/release/liblbucket.so "$LIBDIR"
-
 EXPOSE 6379
 CMD ["redis-server", "--loadmodule", "/usr/lib/redis/modules/liblbucket.so"]
